@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ნადირობა საქართველოში - Wild Hunter Georgia</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0f19;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* UI Overlay Elements */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+        }
+        .pointer-active {
+            pointer-events: auto;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 12px 18px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+        .btn {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            border: 1px solid #475569;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #475569, #334155);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #d97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 2px solid #fef08a;
+        }
+        .stat-val {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .score-val {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        /* Biome Switcher Banner */
+        .biome-banner {
+            text-align: center;
+        }
+        .biome-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #f59e0b;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        /* Controls Help Box */
+        .controls-box {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+        .kbd {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 1px 5px;
+            color: #f1f5f9;
+            font-weight: bold;
+        }
+
+        /* Bottom HUD */
+        .bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+        }
+        .status-bars {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .bar-container {
+            width: 100%;
+            height: 10px;
+            background: #1e293b;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        .bar-fill-hp {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+        .bar-fill-stamina {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #d97706, #f59e0b);
+        }
+
+        .weapon-hud {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .ammo-counter {
+            font-size: 32px;
+            font-weight: 900;
+            color: #f59e0b;
+            line-height: 1;
+        }
+        .ammo-reserve {
+            font-size: 18px;
+            color: #64748b;
+        }
+
+        .dog-hud {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 180px;
+        }
+        .alert-badge {
+            background: #ef4444;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .modal-content {
+            width: 90%;
+            max-width: 750px;
+            max-height: 85vh;
+            background: #0f172a;
+            border: 1px solid #d97706;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+        .modal-header {
+            padding: 16px 24px;
+            background: #1e293b;
+            border-b: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-tabs {
+            display: flex;
+            background: #090d16;
+            border-bottom: 1px solid #334155;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #f59e0b;
+            border-bottom-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card.active-item {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        /* Start Screen Overlay */
+        #startScreen {
+            z-index: 200;
+        }
+        .start-box {
+            text-align: center;
+            max-width: 480px;
+            padding: 30px;
+        }
+        .start-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #f59e0b;
+            margin-bottom: 8px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* Notification Toasts */
+        #toastContainer {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #f59e0b;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Render Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- START OVERLAY -->
+    <div id="startScreen" class="modal-overlay">
+        <div class="glass-panel start-box">
+            <h1 class="start-title">ნადირობა საქართველოში</h1>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 20px;">
+                სანადირო სიმულატორი: ტყის და ყანის ბიომები, ძაღლის აპორტირების მექანიკა, 5 ტიპის თოფი და ეკონომიკური სისტემა.
+            </p>
+            <div style="margin-bottom: 20px; text-align: left;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 4px;">მონადირის სახელი:</label>
+                <input id="playerNameInput" type="text" value="მონადირე" style="width: 100%; padding: 10px; border-radius: 8px; background: #090d16; border: 1px solid #334155; color: white; outline: none;">
+            </div>
+            <button onclick="startGame()" class="btn pointer-active" style="width: 100%; padding: 14px; font-size: 16px;">
+                🎯 თამაშის დაწყება
+            </button>
+        </div>
+    </div>
+
+    <!-- UI OVERLAY LAYER -->
+    <div class="ui-layer">
+        <!-- Top HUD -->
+        <div class="top-bar">
+            <div class="glass-panel player-card pointer-active">
+                <div class="avatar">🤠</div>
+                <div>
+                    <div style="font-weight: bold; font-size: 15px;" id="uiPlayerName">მონადირე</div>
+                    <div style="font-size: 13px;">
+                        თანხა: <span class="stat-val">$<span id="uiMoney">250</span></span> | 
+                        ქულა: <span class="score-val" id="uiScore">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel biome-banner pointer-active">
+                <div class="biome-title" id="uiBiomeTitle">ტყე (FOREST)</div>
+                <div style="display: flex; gap: 6px; justify-content: center;">
+                    <button class="btn btn-secondary pointer-active" style="padding: 4px 10px; font-size: 11px;" onclick="switchBiome('forest')">🌲 ტყე</button>
+                    <button class="btn btn-secondary pointer-active" style="padding: 4px 10px; font-size: 11px;" onclick="switchBiome('fields')">🌾 ყანები</button>
+                </div>
+            </div>
+
+            <div class="glass-panel controls-box pointer-active">
+                <div><span class="kbd">WASD</span> მოძრაობა | <span class="kbd">SHIFT</span> სირბილი</div>
+                <div><span class="kbd">L-Click</span> სროლა | <span class="kbd">R</span> გადატენვა</div>
+                <div><span class="kbd">1</span> / <span class="kbd">2</span> ვაზნა | <span class="kbd">E</span> აღება</div>
+                <div><span class="kbd">B</span> / <span class="kbd">TAB</span> მაღაზია</div>
+            </div>
+        </div>
+
+        <!-- Bottom HUD -->
+        <div class="bottom-bar">
+            <!-- Health & Stamina -->
+            <div class="glass-panel status-bars pointer-active">
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>სიცოცხლე</span>
+                        <span id="uiHpText">100 HP</span>
+                    </div>
+                    <div class="bar-container">
+                        <div id="uiHpBar" class="bar-fill-hp"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>ენერგია</span>
+                        <span id="uiStaminaText">100%</span>
+                    </div>
+                    <div class="bar-container">
+                        <div id="uiStaminaBar" class="bar-fill-stamina"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weapon Status -->
+            <div class="glass-panel weapon-hud pointer-active">
+                <div style="text-align: right;">
+                    <div id="uiWeaponName" style="font-weight: bold; font-size: 16px; color: #f59e0b;">ორლულიანი თოფი</div>
+                    <div style="font-size: 12px; color: #94a3b8;">
+                        ვაზნა: <span id="uiAmmoTypeName" style="color: #cbd5e1; font-weight: bold;">10 ნომერი</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 4px; border-left: 1px solid #334155; padding-left: 14px;">
+                    <span class="ammo-counter" id="uiAmmoCurrent">2</span>
+                    <span class="ammo-reserve">/ <span id="uiAmmoReserve">40</span></span>
+                </div>
+                <button onclick="toggleShop(true)" class="btn pointer-active" style="padding: 10px 14px;">
+                    🛒 მაღაზია [B]
+                </button>
+            </div>
+
+            <!-- Dog Panel -->
+            <div class="glass-panel dog-hud pointer-active">
+                <div style="font-size: 24px;">🐕</div>
+                <div>
+                    <div style="display: flex; items-center; gap: 6px;">
+                        <span id="uiDogBreed" style="font-weight: bold; font-size: 13px; color: #f59e0b;">ფოინტერი</span>
+                        <span id="uiDogAlert" class="alert-badge hidden">! სუნი</span>
+                    </div>
+                    <div id="uiDogState" style="font-size: 11px; color: #94a3b8;">ეძებს ნადირს...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOP & MARKET MODAL -->
+    <div id="shopModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="color: #f59e0b; font-size: 20px;">🏛️ სანადირო მაღაზია & ბაზარი</h2>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-weight: bold; color: #10b981; font-size: 16px;">ბალანსი: $<span id="modalBalance">0</span></span>
+                    <button onclick="toggleShop(false)" class="btn btn-secondary" style="padding: 4px 10px;">✕</button>
+                </div>
+            </div>
+
+            <div class="modal-tabs">
+                <button class="tab-btn active" onclick="setShopTab('weapons')" id="tab-weapons">თოფები</button>
+                <button class="tab-btn" onclick="setShopTab('ammo')" id="tab-ammo">ვაზნები</button>
+                <button class="tab-btn" onclick="setShopTab('dogs')" id="tab-dogs">ძაღლები</button>
+                <button class="tab-btn" onclick="setShopTab('market')" id="tab-market">ნადირის ჩაბარება</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="shopContentWeapons" class="grid-cards"></div>
+                <div id="shopContentAmmo" class="grid-cards hidden"></div>
+                <div id="shopContentDogs" class="grid-cards hidden"></div>
+                <div id="shopContentMarket" class="grid-cards hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. SAFE PROCEDURAL AUDIO ENGINE (AudioContext Protected with Try/Catch)
+           ========================================================================== */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {
+                    console.log("Audio not supported or blocked.");
+                }
+            }
+
+            playShot() {
+                if (!this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const bufferSize = this.ctx.sampleRate * 0.4;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                    const noise = this.ctx.createBufferSource();
+                    noise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(1000, now);
+                    filter.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(1.0, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    noise.start(now);
+                } catch (e) {}
+            }
+
+            playReload() {
+                if (!this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } catch(e) {}
+            }
+
+            playBark() {
+                if (!this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } catch(e) {}
+            }
+        }
+
+        const audio = new SoundEngine();
+
+        /* ==========================================================================
+           2. GAME ARSENAL & FAUNA DEFINITIONS
+           ========================================================================== */
+        const WEAPONS = [
+            { id: 'double', name: 'კლასიკური ორლულიანი', desc: 'ტრადიციული ორლულიანი თოფი. სწრაფი 2 გასროლა.', capacity: 2, reloadTime: 1.5, fireRate: 0.2, spread: 0.22, pellets: 10, damage: 15, price: 0, owned: true },
+            { id: 'gt1', name: 'GT1 თურქული ნახევრად-ავტომატი', desc: 'თანამედროვე 5-ვაზნიანი ნახევრად-ავტომატური თოფი.', capacity: 5, reloadTime: 2.4, fireRate: 0.3, spread: 0.18, pellets: 8, damage: 17, price: 450, owned: false },
+            { id: 'widespread', name: 'ფართო დიფუზიური თოფი', desc: 'დიდი დაფარვის რადიუსი ფრინველზე სანადიროდ.', capacity: 4, reloadTime: 2.0, fireRate: 0.4, spread: 0.32, pellets: 14, damage: 11, price: 650, owned: false },
+            { id: 'overunder', name: 'ვერტიკალური ორლულიანი', desc: 'მაღალი სიზუსტის სპორტულ-სანადირო თოფი.', capacity: 2, reloadTime: 1.3, fireRate: 0.2, spread: 0.10, pellets: 8, damage: 25, price: 900, owned: false },
+            { id: 'magnum', name: 'ჰანტერ მაგნუმი 3.5"', desc: 'მაქსიმალური სიმძლავრის თოფი დიდ ნადირზე.', capacity: 6, reloadTime: 2.8, fireRate: 0.35, spread: 0.15, pellets: 12, damage: 24, price: 1400, owned: false }
+        ];
+
+        const DOG_BREEDS = [
+            { id: 'pointer', name: 'ინგლისური ფოინტერი', scentRadius: 220, speed: 3.5, price: 0, owned: true },
+            { id: 'setter', name: 'ირლანდიური სეტერი', scentRadius: 300, speed: 4.2, price: 350, owned: false },
+            { id: 'retriever', name: 'გოლდენ რეტრივერი', scentRadius: 380, speed: 4.8, price: 750, owned: false }
+        ];
+
+        const FAUNA = {
+            quail: { name: 'მწყერი', hp: 12, speed: 4.5, value: 30, flying: true, size: 10, color: '#d97706' },
+            pheasant: { name: 'ხოხობი', hp: 20, speed: 4.0, value: 70, flying: true, size: 14, color: '#059669' },
+            rabbit: { name: 'კურდღელი', hp: 25, speed: 3.8, value: 40, flying: false, size: 12, color: '#9ca3af' },
+            roe_deer: { name: 'შველი', hp: 90, speed: 3.2, value: 140, flying: false, size: 22, color: '#b45309' },
+            jackal: { name: 'ტურა', hp: 65, speed: 3.5, value: 100, flying: false, size: 18, color: '#d97706' },
+            wolf: { name: 'მგელი', hp: 120, speed: 3.6, value: 200, flying: false, size: 24, color: '#475569' }
+        };
+
+        /* ==========================================================================
+           3. GAME STATE & LOCALSTORAGE SAVE SYSTEM
+           ========================================================================== */
+        const gameState = {
+            playerName: 'მონადირე',
+            money: 250,
+            score: 0,
+            activeBiome: 'forest', // 'forest' or 'fields'
+            equippedWeapon: 0,
+            ammoType: 'birdshot', // 'birdshot' (10 ნომერი) or 'buckshot' (კარტეჩი)
+            ammoInventory: { birdshot: 40, buckshot: 20 },
+            currentMag: 2,
+            isReloading: false,
+            reloadTimer: 0,
+            lastShotTime: 0,
+            activeDog: 0,
+            inventory: { quail: 0, pheasant: 0, rabbit: 0, roe_deer: 0, jackal: 0, wolf: 0 }
+        };
+
+        function saveGame() {
+            try {
+                localStorage.setItem('wild_hunter_geo_save', JSON.stringify({
+                    playerName: gameState.playerName,
+                    money: gameState.money,
+                    score: gameState.score,
+                    weaponsOwned: WEAPONS.map(w => w.owned),
+                    dogsOwned: DOG_BREEDS.map(d => d.owned),
+                    equippedWeapon: gameState.equippedWeapon,
+                    activeDog: gameState.activeDog,
+                    ammoInventory: gameState.ammoInventory,
+                    inventory: gameState.inventory
+                }));
+            } catch(e) {}
+        }
+
+        function loadGame() {
+            try {
+                const data = localStorage.getItem('wild_hunter_geo_save');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    gameState.playerName = parsed.playerName || 'მონადირე';
+                    gameState.money = parsed.money ?? 250;
+                    gameState.score = parsed.score ?? 0;
+                    if (parsed.weaponsOwned) parsed.weaponsOwned.forEach((o, i) => { if(WEAPONS[i]) WEAPONS[i].owned = o; });
+                    if (parsed.dogsOwned) parsed.dogsOwned.forEach((o, i) => { if(DOG_BREEDS[i]) DOG_BREEDS[i].owned = o; });
+                    gameState.equippedWeapon = parsed.equippedWeapon || 0;
+                    gameState.activeDog = parsed.activeDog || 0;
+                    if (parsed.ammoInventory) gameState.ammoInventory = parsed.ammoInventory;
+                    if (parsed.inventory) gameState.inventory = parsed.inventory;
+                }
+            } catch(e) {}
+        }
+
+        /* ==========================================================================
+           4. CANVAS SETUP & GAME OBJECTS
+           ========================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const world = { width: 3000, height: 2200, trees: [], bushes: [] };
+
+        // Generate props
+        for (let i = 0; i < 160; i++) {
+            world.trees.push({ x: Math.random() * world.width, y: Math.random() * world.height, r: 35 + Math.random() * 40 });
+            world.bushes.push({ x: Math.random() * world.width, y: Math.random() * world.height, r: 20 + Math.random() * 20 });
+        }
+
+        const player = { x: world.width / 2, y: world.height / 2, r: 16, angle: 0, speed: 3.2, stamina: 100, hp: 100 };
+        const dog = { x: player.x - 30, y: player.y - 30, angle: 0, state: 'idle', target: null, timer: 0 };
+
+        let animals = [];
+        let particles = [];
+        let lootItems = [];
+        let shotTraces = [];
+
+        const keys = {};
+        const mouse = { x: 0, y: 0, worldX: 0, worldY: 0 };
+
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === '1') setAmmo('birdshot');
+            if (e.key === '2') setAmmo('buckshot');
+            if (e.key.toLowerCase() === 'r') reload();
+            if (e.key.toLowerCase() === 'b' || e.key === 'Tab') { e.preventDefault(); toggleShop(); }
+            if (e.key.toLowerCase() === 'e') pickLoot();
+        });
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        canvas.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        canvas.addEventListener('mousedown', e => {
+            if (e.button === 0) shoot();
+        });
+
+        /* ==========================================================================
+           5. GAME MECHANICS (BIOMES, WEAPONS, DOG AI)
+           ========================================================================== */
+        function switchBiome(type) {
+            gameState.activeBiome = type;
+            document.getElementById('uiBiomeTitle').innerText = type === 'forest' ? 'ტყე (FOREST)' : 'ყანები (FIELDS)';
+            spawnAnimals();
+            showToast(`გადახვედით ტერიტორიაზე: ${type === 'forest' ? 'ტყე' : 'ყანები'}`);
+        }
+
+        function spawnAnimals() {
+            animals = [];
+            const isForest = gameState.activeBiome === 'forest';
+
+            const quails = isForest ? 6 : 24;
+            for (let i = 0; i < quails; i++) addAnimal('quail');
+
+            const pheasants = isForest ? 12 : 6;
+            for (let i = 0; i < pheasants; i++) addAnimal('pheasant');
+
+            for (let i = 0; i < 10; i++) addAnimal('rabbit');
+
+            if (isForest) {
+                for (let i = 0; i < 8; i++) addAnimal('roe_deer');
+                for (let i = 0; i < 5; i++) addAnimal('jackal');
+                for (let i = 0; i < 4; i++) addAnimal('wolf');
+            }
+        }
+
+        function addAnimal(type) {
+            const info = FAUNA[type];
+            animals.push({
+                type: type,
+                x: 100 + Math.random() * (world.width - 200),
+                y: 100 + Math.random() * (world.height - 200),
+                hp: info.hp,
+                maxHp: info.hp,
+                speed: info.speed,
+                size: info.size,
+                angle: Math.random() * Math.PI * 2,
+                state: 'idle',
+                altitude: 0,
+                changeDirTimer: Math.random() * 80
+            });
+        }
+
+        function setAmmo(type) {
+            if (gameState.ammoType === type) return;
+            gameState.ammoType = type;
+            document.getElementById('uiAmmoTypeName').innerText = type === 'birdshot' ? '10 ნომერი' : 'კარტეჩი';
+            audio.playReload();
+            showToast(`ვაზნა: ${type === 'birdshot' ? '10 ნომერი' : 'კარტეჩი'}`);
+        }
+
+        function reload() {
+            const wpn = WEAPONS[gameState.equippedWeapon];
+            if (gameState.isReloading || gameState.currentMag >= wpn.capacity) return;
+            const reserve = gameState.ammoInventory[gameState.ammoType];
+            if (reserve <= 0) {
+                showToast("ვაზნები დამთავრდა!", "error");
+                return;
+            }
+            gameState.isReloading = true;
+            gameState.reloadTimer = wpn.reloadTime;
+            audio.playReload();
+        }
+
+        function shoot() {
+            if (gameState.isReloading) return;
+            const wpn = WEAPONS[gameState.equippedWeapon];
+
+            if (gameState.currentMag <= 0) {
+                showToast("მჭიდი ცარიელია! დააჭირეთ R-ს", "warning");
+                reload();
+                return;
+            }
+
+            const now = performance.now() / 1000;
+            if (now - gameState.lastShotTime < wpn.fireRate) return;
+
+            gameState.lastShotTime = now;
+            gameState.currentMag--;
+            audio.playShot();
+
+            // Recoil
+            player.x -= Math.cos(player.angle) * 5;
+            player.y -= Math.sin(player.angle) * 5;
+
+            const pelletCount = gameState.ammoType === 'birdshot' ? wpn.pellets * 1.3 : wpn.pellets;
+            const damagePerPellet = gameState.ammoType === 'birdshot' ? wpn.damage * 0.7 : wpn.damage * 1.4;
+
+            for (let i = 0; i < pelletCount; i++) {
+                const spread = (Math.random() - 0.5) * wpn.spread;
+                const shotAngle = player.angle + spread;
+                const endX = player.x + Math.cos(shotAngle) * 500;
+                const endY = player.y + Math.sin(shotAngle) * 500;
+
+                shotTraces.push({ startX: player.x, startY: player.y, endX: endX, endY: endY, alpha: 1.0 });
+
+                animals.forEach(a => {
+                    if (a.state === 'dead') return;
+                    const dist = pointToLineDist(a.x, a.y, player.x, player.y, endX, endY);
+                    const hitRadius = a.size + (a.altitude > 0 ? 12 : 4);
+
+                    if (dist < hitRadius) {
+                        let dmg = damagePerPellet;
+                        if (a.altitude > 0 && gameState.ammoType === 'buckshot') dmg *= 0.3;
+
+                        a.hp -= dmg;
+                        a.state = a.hp <= 0 ? 'dead' : 'fleeing';
+
+                        // Blood / Feathers
+                        for (let k = 0; k < 8; k++) {
+                            particles.push({
+                                x: a.x, y: a.y,
+                                vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                                color: FAUNA[a.type].flying ? '#fef08a' : '#dc2626',
+                                r: Math.random() * 3 + 1, life: 1.0
+                            });
+                        }
+
+                        if (a.hp <= 0) killAnimal(a);
+                    }
+                });
+            }
+
+            // Alert animals
+            animals.forEach(a => {
+                if (a.state !== 'dead' && Math.hypot(a.x - player.x, a.y - player.y) < 550) {
+                    a.state = FAUNA[a.type].flying ? 'flushed' : 'fleeing';
+                }
+            });
+
+            updateHUD();
+        }
+
+        function killAnimal(a) {
+            a.state = 'dead';
+            gameState.score += FAUNA[a.type].value * 2;
+            showToast(`მოინადირეთ: ${FAUNA[a.type].name}!`, "success");
+            lootItems.push({ x: a.x, y: a.y, type: a.type });
+
+            if (FAUNA[a.type].flying && dog.state !== 'retrieving') {
+                dog.state = 'retrieving';
+                dog.target = a;
+            }
+        }
+
+        function pointToLineDist(px, py, x1, y1, x2, y2) {
+            const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+            const dot = A * C + B * D;
+            const len_sq = C * C + D * D;
+            let param = -1;
+            if (len_sq !== 0) param = dot / len_sq;
+            let xx, yy;
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * C; yy = y1 + param * D; }
+            return Math.hypot(px - xx, py - yy);
+        }
+
+        function updateDog(dt) {
+            const breed = DOG_BREEDS[gameState.activeDog];
+            const distToPlayer = Math.hypot(player.x - dog.x, player.y - dog.y);
+
+            const alertBadge = document.getElementById('uiDogAlert');
+            const stateLabel = document.getElementById('uiDogState');
+
+            if (dog.state === 'idle') {
+                alertBadge.classList.add('hidden');
+                stateLabel.innerText = "ეძებს ნადირს...";
+                if (distToPlayer > 100) {
+                    const a = Math.atan2(player.y - dog.y, player.x - dog.x);
+                    dog.x += Math.cos(a) * breed.speed;
+                    dog.y += Math.sin(a) * breed.speed;
+                    dog.angle = a;
+                }
+                animals.forEach(a => {
+                    if (a.state !== 'dead' && FAUNA[a.type].flying && a.altitude === 0) {
+                        if (Math.hypot(a.x - dog.x, a.y - dog.y) < breed.scentRadius) {
+                            dog.state = 'pointing';
+                            dog.target = a;
+                            dog.timer = 0;
+                            audio.playBark();
+                        }
+                    }
+                });
+            } else if (dog.state === 'pointing') {
+                alertBadge.classList.remove('hidden');
+                stateLabel.innerText = "!! სუნი (ნაბული)";
+                if (!dog.target || dog.target.state === 'dead') { dog.state = 'idle'; return; }
+
+                dog.angle = Math.atan2(dog.target.y - dog.y, dog.target.x - dog.x);
+                dog.timer += dt;
+
+                if (dog.timer >= 5.0) {
+                    dog.target.state = 'flushed';
+                    dog.state = 'idle';
+                    showToast("მწყერი ამოფრინდა! ესროლეთ!", "warning");
+                }
+            } else if (dog.state === 'retrieving') {
+                alertBadge.classList.add('hidden');
+                stateLabel.innerText = "მოაქვს ნადირი...";
+                if (!dog.target) { dog.state = 'idle'; return; }
+
+                const d = Math.hypot(dog.target.x - dog.x, dog.target.y - dog.y);
+                const a = Math.atan2(dog.target.y - dog.y, dog.target.x - dog.x);
+
+                if (d > 15) {
+                    dog.x += Math.cos(a) * (breed.speed * 1.3);
+                    dog.y += Math.sin(a) * (breed.speed * 1.3);
+                    dog.angle = a;
+                } else {
+                    gameState.inventory[dog.target.type]++;
+                    showToast(`ძაღლმა მოგიტანათ: 1x ${FAUNA[dog.target.type].name}`, "success");
+                    dog.state = 'idle';
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. MAIN GAME ENGINE LOOP
+           ========================================================================== */
+        let lastTime = performance.now();
+
+        function gameLoop(time) {
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            update(dt);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            // Sprint / Move
+            let moveSpeed = player.speed;
+            if (keys['shift'] && player.stamina > 5) {
+                moveSpeed *= 1.6;
+                player.stamina = Math.max(0, player.stamina - dt * 30);
+            } else {
+                player.stamina = Math.min(100, player.stamina + dt * 15);
+            }
+
+            let dx = 0, dy = 0;
+            if (keys['w'] || keys['arrowup']) dy -= 1;
+            if (keys['s'] || keys['arrowdown']) dy += 1;
+            if (keys['a'] || keys['arrowleft']) dx -= 1;
+            if (keys['d'] || keys['arrowright']) dx += 1;
+
+            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+            player.x = Math.max(player.r, Math.min(world.width - player.r, player.x + dx * moveSpeed));
+            player.y = Math.max(player.r, Math.min(world.height - player.r, player.y + dy * moveSpeed));
+
+            // Aim angle
+            mouse.worldX = mouse.x + (player.x - width / 2);
+            mouse.worldY = mouse.y + (player.y - height / 2);
+            player.angle = Math.atan2(mouse.worldY - player.y, mouse.worldX - player.x);
+
+            // Reload timer
+            if (gameState.isReloading) {
+                gameState.reloadTimer -= dt;
+                if (gameState.reloadTimer <= 0) {
+                    const wpn = WEAPONS[gameState.equippedWeapon];
+                    const res = gameState.ammoInventory[gameState.ammoType];
+                    const need = wpn.capacity - gameState.currentMag;
+                    const load = Math.min(need, res);
+                    gameState.currentMag += load;
+                    gameState.ammoInventory[gameState.ammoType] -= load;
+                    gameState.isReloading = false;
+                    updateHUD();
+                }
+            }
+
+            updateDog(dt);
+
+            // Animals
+            animals.forEach(a => {
+                if (a.state === 'dead') return;
+                a.changeDirTimer -= dt * 10;
+                if (a.changeDirTimer <= 0) {
+                    a.angle += (Math.random() - 0.5) * 1.4;
+                    a.changeDirTimer = 20 + Math.random() * 50;
+                }
+
+                if (a.state === 'flushed') {
+                    a.altitude = Math.min(80, a.altitude + dt * 50);
+                    a.x += Math.cos(a.angle) * (a.speed * 1.8);
+                    a.y += Math.sin(a.angle) * (a.speed * 1.8);
+                } else if (a.state === 'fleeing') {
+                    const fleeA = Math.atan2(a.y - player.y, a.x - player.x);
+                    a.angle = fleeA;
+                    a.x += Math.cos(fleeA) * (a.speed * 1.5);
+                    a.y += Math.sin(fleeA) * (a.speed * 1.5);
+                } else {
+                    a.x += Math.cos(a.angle) * (a.speed * 0.4);
+                    a.y += Math.sin(a.angle) * (a.speed * 0.4);
+                }
+
+                a.x = Math.max(40, Math.min(world.width - 40, a.x));
+                a.y = Math.max(40, Math.min(world.height - 40, a.y));
+            });
+
+            // FX
+            shotTraces.forEach(t => t.alpha -= dt * 4);
+            shotTraces = shotTraces.filter(t => t.alpha > 0);
+
+            particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= dt * 2; });
+            particles = particles.filter(p => p.life > 0);
+
+            updateHUD();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            const camX = width / 2 - player.x;
+            const camY = height / 2 - player.y;
+
+            ctx.save();
+            ctx.translate(camX, camY);
+
+            // Ground Biome
+            if (gameState.activeBiome === 'forest') {
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, 0, world.width, world.height);
+                ctx.fillStyle = '#0f172a';
+                world.bushes.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); });
+            } else {
+                ctx.fillStyle = '#3f6212';
+                ctx.fillRect(0, 0, world.width, world.height);
+                ctx.strokeStyle = '#4d7c0f';
+                ctx.lineWidth = 26;
+                for (let x = 80; x < world.width; x += 160) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, world.height); ctx.stroke();
+                }
+            }
+
+            // Loot
+            lootItems.forEach(l => {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(l.x, l.y, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px sans-serif';
+                ctx.fillText("აიღეთ [E]", l.x - 20, l.y - 10);
+            });
+
+            // Animals
+            animals.forEach(a => {
+                const drawY = a.y - a.altitude;
+                ctx.save();
+                ctx.translate(a.x, drawY);
+                ctx.rotate(a.angle);
+
+                ctx.fillStyle = a.state === 'dead' ? '#64748b' : FAUNA[a.type].color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, a.size, a.size * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(a.size * 0.6, 0, a.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+
+            // Dog
+            ctx.save();
+            ctx.translate(dog.x, dog.y);
+            ctx.rotate(dog.angle);
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath(); ctx.ellipse(0, 0, 13, 8, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#451a03';
+            ctx.beginPath(); ctx.arc(9, 0, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            if (dog.state === 'pointing') {
+                ctx.fillStyle = '#ef4444';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.fillText('!', dog.x - 3, dog.y - 18);
+            }
+
+            // Player & Aiming Rib Sight
+            const wpn = WEAPONS[gameState.equippedWeapon];
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            // Spread Cone
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(400, -Math.tan(wpn.spread / 2) * 400);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(400, Math.tan(wpn.spread / 2) * 400);
+            ctx.stroke();
+
+            // Rib Aim Sight
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(400, 0); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Body
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath(); ctx.arc(0, 0, player.r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(4, -3, 22, 6);
+            ctx.restore();
+
+            // Traces & Particles
+            shotTraces.forEach(t => {
+                ctx.strokeStyle = `rgba(253, 224, 71, ${t.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(t.startX, t.startY); ctx.lineTo(t.endX, t.endY); ctx.stroke();
+            });
+
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+            });
+
+            // Forest Trees Overhead
+            if (gameState.activeBiome === 'forest') {
+                world.trees.forEach(t => {
+                    ctx.fillStyle = 'rgba(6, 78, 59, 0.75)';
+                    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill();
+                });
+            }
+
+            ctx.restore();
+        }
+
+        /* ==========================================================================
+           7. UI & SHOP MODAL RENDERING
+           ========================================================================== */
+        function updateHUD() {
+            document.getElementById('uiPlayerName').innerText = gameState.playerName;
+            document.getElementById('uiMoney').innerText = gameState.money;
+            document.getElementById('uiScore').innerText = gameState.score;
+            document.getElementById('uiHpBar').style.width = `${player.hp}%`;
+            document.getElementById('uiStaminaBar').style.width = `${player.stamina}%`;
+            document.getElementById('uiStaminaText').innerText = `${Math.round(player.stamina)}%`;
+
+            const wpn = WEAPONS[gameState.equippedWeapon];
+            document.getElementById('uiWeaponName').innerText = wpn.name;
+            document.getElementById('uiAmmoCurrent').innerText = gameState.currentMag;
+            document.getElementById('uiAmmoReserve').innerText = gameState.ammoInventory[gameState.ammoType];
+
+            document.getElementById('uiDogBreed').innerText = DOG_BREEDS[gameState.activeDog].name;
+        }
+
+        function pickLoot() {
+            for (let i = lootItems.length - 1; i >= 0; i--) {
+                const item = lootItems[i];
+                if (Math.hypot(item.x - player.x, item.y - player.y) < 50) {
+                    gameState.inventory[item.type]++;
+                    showToast(`აიღეთ 1x ${FAUNA[item.type].name}`, "success");
+                    lootItems.splice(i, 1);
+                    return;
+                }
+            }
+        }
+
+        function showToast(text, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if (type === 'success') toast.style.borderColor = '#10b981';
+            if (type === 'error') toast.style.borderColor = '#ef4444';
+            toast.innerText = text;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        function toggleShop(show) {
+            const modal = document.getElementById('shopModal');
+            if (show === undefined) modal.classList.toggle('hidden');
+            else if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+
+            if (!modal.classList.contains('hidden')) renderShop();
+        }
+
+        function setShopTab(tab) {
+            ['weapons', 'ammo', 'dogs', 'market'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.remove('active');
+                document.getElementById(`shopContent${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.add('hidden');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`shopContent${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+            renderShop();
+        }
+
+        function renderShop() {
+            document.getElementById('modalBalance').innerText = gameState.money;
+
+            // Weapons
+            document.getElementById('shopContentWeapons').innerHTML = WEAPONS.map((w, i) => `
+                <div class="card ${gameState.equippedWeapon === i ? 'active-item' : ''}">
+                    <div>
+                        <h3 style="color: #f59e0b; margin-bottom: 4px;">${w.name}</h3>
+                        <p style="font-size: 12px; color: #94a3b8;">${w.desc}</p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                        <span style="color: #10b981; font-weight: bold;">${w.owned ? 'შექმნილია' : '$' + w.price}</span>
+                        ${w.owned ? 
+                            `<button onclick="equipWpn(${i})" class="btn btn-secondary">${gameState.equippedWeapon === i ? 'არჩეულია' : 'არჩევა'}</button>` :
+                            `<button onclick="buyWpn(${i})" class="btn btn-success">ყიდვა</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            // Ammo
+            document.getElementById('shopContentAmmo').innerHTML = `
+                <div class="card">
+                    <h3>10 ნომერი (Birdshot)</h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin: 6px 0;">ფრინველზე სანადირო ვაზნები.</p>
+                    <button onclick="buyAmmo('birdshot', 20, 45)" class="btn btn-success">$45 / 20 ცალი</button>
+                </div>
+                <div class="card">
+                    <h3>კარტეჩი (Buckshot)</h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin: 6px 0;">მძიმე ვაზნები დიდ ნადირზე.</p>
+                    <button onclick="buyAmmo('buckshot', 15, 75)" class="btn btn-success">$75 / 15 ცალი</button>
+                </div>
+            `;
+
+            // Dogs
+            document.getElementById('shopContentDogs').innerHTML = DOG_BREEDS.map((d, i) => `
+                <div class="card ${gameState.activeDog === i ? 'active-item' : ''}">
+                    <div>
+                        <h3 style="color: #f59e0b;">${d.name}</h3>
+                        <p style="font-size: 12px; color: #94a3b8;">სუნის რადიუსი: ${d.scentRadius}px</p>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        ${d.owned ? 
+                            `<button onclick="equipDog(${i})" class="btn btn-secondary">${gameState.activeDog === i ? 'აქტიური' : 'არჩევა'}</button>` :
+                            `<button onclick="buyDog(${i})" class="btn btn-success">ყიდვა $${d.price}</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            // Market
+            document.getElementById('shopContentMarket').innerHTML = Object.keys(gameState.inventory).map(k => `
+                <div class="card" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-weight: bold;">${FAUNA[k].name}</div>
+                        <div style="font-size: 12px; color: #94a3b8;">რაოდენობა: ${gameState.inventory[k]}</div>
+                    </div>
+                    <button onclick="sellItem('${k}')" class="btn btn-success" ${gameState.inventory[k] <= 0 ? 'disabled style="opacity:0.4;"' : ''}>
+                        ჩაბარება ($${FAUNA[k].value})
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function buyWpn(i) {
+            if (gameState.money >= WEAPONS[i].price) {
+                gameState.money -= WEAPONS[i].price;
+                WEAPONS[i].owned = true;
+                gameState.equippedWeapon = i;
+                saveGame(); renderShop();
+            } else showToast("არ გაქვთ საკმარისი თანხა!", "error");
+        }
+        function equipWpn(i) { gameState.equippedWeapon = i; saveGame(); renderShop(); }
+
+        function buyAmmo(type, count, cost) {
+            if (gameState.money >= cost) {
+                gameState.money -= cost;
+                gameState.ammoInventory[type] += count;
+                saveGame(); renderShop();
+                showToast("ვაზნები შეძენილია!", "success");
+            } else showToast("არ გაქვთ საკმარისი თანხა!", "error");
+        }
+
+        function buyDog(i) {
+            if (gameState.money >= DOG_BREEDS[i].price) {
+                gameState.money -= DOG_BREEDS[i].price;
+                DOG_BREEDS[i].owned = true;
+                gameState.activeDog = i;
+                saveGame(); renderShop();
+            } else showToast("არ გაქვთ საკმარისი თანხა!", "error");
+        }
+        function equipDog(i) { gameState.activeDog = i; saveGame(); renderShop(); }
+
+        function sellItem(key) {
+            if (gameState.inventory[key] > 0) {
+                gameState.inventory[key]--;
+                gameState.money += FAUNA[key].value;
+                saveGame(); renderShop();
+                showToast(`ჩააბარეთ 1x ${FAUNA[key].name}`, "success");
+            }
+        }
+
+        /* ==========================================================================
+           8. STARTUP & IMMEDIATE INITIALIZATION
+           ========================================================================== */
+        function startGame() {
+            audio.init();
+            const name = document.getElementById('playerNameInput').value.trim();
+            if (name) gameState.playerName = name;
+            document.getElementById('startScreen').classList.add('hidden');
+            saveGame();
+            updateHUD();
+        }
+
+        window.onload = function() {
+            loadGame();
+            spawnAnimals();
+            updateHUD();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
